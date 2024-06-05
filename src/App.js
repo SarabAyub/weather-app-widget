@@ -1,63 +1,93 @@
-import React, { useState } from 'react';
-import axios from 'axios'
+import React, { Component } from 'react';
+import axios from 'axios';
 
-function App() {
-  const [data, setData] = useState({})
-  const [location, setLocation] = useState('')
+class App extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      data: {},
+      location: '',
+      errorMessage: '',
+      loading: false,
+    };
+  }
 
-  const key = '16a63f8cb5fc103c8b8d80e5f178b2e1'
-  const URL = `https://api.openweathermap.org/data/2.5/weather?q=${location}&appid=${key}&units=metric`;
+  key = '16a63f8cb5fc103c8b8d80e5f178b2e1';
 
-  const searchLocation = (event) => {
+  searchLocation = (event) => {
     if (event.key === 'Enter') {
-      axios.get(URL)
-        .then((response) => {
-          setData(response.data)
-          console.log(response.data)
-          setLocation('')
-        })
+      this.setState({ loading: true, errorMessage: '' });
+      setTimeout(() => {
+        const { location } = this.state;
+        const URL = `https://api.openweathermap.org/data/2.5/weather?q=${location}&appid=${this.key}&units=metric`;
+        axios.get(URL)
+          .then((response) => {
+            this.setState({ data: response.data, location: '', loading: false });
+          })
+          .catch((error) => {
+            const errorMessage = error.response
+              ? error.response.data.message
+              : error.request
+                ? 'No response received'
+                : error.message;
+            this.setState({ errorMessage, loading: false });
+            console.log(error);
+
+          })
+      }, 2000);
     }
   }
 
-  return (
-    <div className="app">
-      <div className='search'>
-        <input
-          value={location}
-          onChange={event => setLocation(event.target.value)}
-          onKeyPress={searchLocation}
-          placeholder='Enter City Name'
-        />
-      </div>
-      <div className='container'>
-        <div className='top'>
-          <div className='location'>
-            {data.name ? <p>{data.name}</p> : null}
+  handleChange = (event) => {
+    this.setState({ location: event.target.value });
+  }
+
+  render() {
+    const { data, location, errorMessage, loading } = this.state;
+
+    return (
+      <div className="app">
+        <div className='search'>
+          <input
+            value={location}
+            onChange={this.handleChange}
+            onKeyDown={this.searchLocation}
+            placeholder='Enter City Name'
+          />
+        </div>
+        {errorMessage && <div className='warning'>{errorMessage}</div>}
+        {loading && <div className='loader'></div>}
+
+        <div className='container'>
+          <div className='top'>
+            {data.name && <div className='location'><p>{data.name}</p></div>}
+            {data.main && <div className='temp'><h1>{data.main.temp} °C</h1></div>}
+            {data.weather && <div className='description'><p>{data.weather[0].main}</p></div>}
           </div>
-          <div className='temp'>
-            {data.main ? <h1>{data.main.temp} °C</h1> : null}
-          </div>
-          <div className='description'>
-            {data.weather ? <p>{data.weather[0].main}</p> : null}
+          <div className='bottom'>
+            {data.main && (
+              <>
+                <div className='feels'>
+                  <p className='bold'>{data.main.feels_like}°C</p>
+                  <p>Feels Like</p>
+                </div>
+                <div className='humidity'>
+                  <p className='bold'>{data.main.humidity}%</p>
+                  <p>Humidity</p>
+                </div>
+              </>
+            )}
+            {data.wind && (
+              <div className='wind'>
+                <p className='bold'>{data.wind.speed} m/s</p>
+                <p>Wind Speed</p>
+              </div>
+            )}
           </div>
         </div>
-        <div className='bottom'>
-          <div className='feels'>
-            {data.main ? <p className='bold'>{data.main.feels_like}°C</p> : null}
-            <p>Feels Like</p>
-          </div>
-          <div className='humidaty'>
-            {data.main ? <p className='bold'>{data.main.humidity}% </p> : null}
-            <p>Humidity</p>
-          </div>
-          <div className='wind'>
-            {data.wind ? <p className='bold'>{data.wind.speed}</p> : null}
-            <p>Wind Speed</p>
-          </div>
-        </div>
       </div>
-    </div>
-  );
+    );
+  }
 }
 
 export default App;
